@@ -35,12 +35,13 @@ async def find_most_similar_gym(ocr_result: dict, db: AsyncSession):
     ocr_address = ocr_result["business_address"]
 
     # ✅ 트랜잭션 명확하게 관리
-    async with db.begin():
-        query = select(Gym).where(
-            (Gym.gym_name.ilike(f"%{ocr_name}%")) | (Gym.full_address.ilike(f"%{ocr_address}%"))
-        )
-        result = await db.execute(query)
-        gym_candidates = result.scalars().all()
+    # async with db.begin():
+    query = select(Gym).where(
+        (Gym.gym_name.ilike(f"%{ocr_name}%")) | (Gym.full_address.ilike(f"%{ocr_address}%"))
+    )
+    result = await db.execute(query)
+    
+    gym_candidates = result.scalars().all()
 
     best_match = None
     best_score = 0.0

@@ -21,4 +21,5 @@ COPY . .
 ENV $(cat /app/.env | xargs)
 
 # FastAPI 실행
-CMD ["uvicorn", "main:app", "--host", "${UVICORN_HOST}", "--port", "${UVICORN_PORT}", "--reload"]
+# CMD ["uvicorn", "main:app", "--host", "${UVICORN_HOST}", "--port", "${UVICORN_PORT}", "--reload"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port 8000 --reload"]

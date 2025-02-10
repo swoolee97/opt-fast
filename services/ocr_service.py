@@ -8,16 +8,20 @@ from services.business_validator import validate_business_info
 from services.semahtic_search import extract_colon_key_values
 from services.semahtic_search import match_ocr_keys
 from services.semahtic_search import *
+from io import BytesIO
 
-async def process_ocr(file: bytes):
+async def process_ocr(file: BytesIO):
+    file.seek(0)  # 파일 포인터를 처음으로 이동
+    file_bytes = np.asarray(bytearray(file.read()), dtype=np.uint8)
     """ OCR 실행 전에 이미지 보정 후, OCR API 호출 """
     # 이미지 변환: 바이트 데이터를 OpenCV 이미지로 변환
-    image = cv2.imdecode(np.frombuffer(file, np.uint8), cv2.IMREAD_COLOR)
+    # image = cv2.imdecode(np.frombuffer(file, np.uint8), cv2.IMREAD_COLOR)
+    image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
     
     # ✅ 디버깅을 위해 이미지를 저장 (컨테이너 내부)
-    save_path = "/app/debug_image.jpg"
-    cv2.imwrite(save_path, image)
-    print(f"✅ Image saved at {save_path}")
+    # save_path = "/app/debug_image.jpg"
+    # cv2.imwrite(save_path, image)
+    # print(f"✅ Image saved at {save_path}")
 
     if image is None:
         return {"error": "올바른 이미지 파일이 아닙니다."}
