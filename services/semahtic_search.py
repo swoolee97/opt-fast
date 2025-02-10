@@ -46,26 +46,33 @@ def match_ocr_keys(ocr_keys: dict, target_keys: list = ["등록번호", "상호"
     remaining_target_keys = [key for key in target_keys if key not in matched_results]
     print(1)
     if remaining_target_keys:
+        print(2)
         ocr_key_list = list(ocr_keys.keys())  # OCR 결과에서 추출된 키 리스트
+        print(3)
         ocr_embeddings = model.encode(ocr_key_list, convert_to_tensor=True)
+        print(4)
         target_embeddings = model.encode(remaining_target_keys, convert_to_tensor=True)
-
+        print(5)
         # 유사도 계산
         cosine_scores = util.pytorch_cos_sim(target_embeddings, ocr_embeddings)
-
+        print(6)
         for i, target_key in enumerate(remaining_target_keys):
             best_match_idx = cosine_scores[i].argmax().item()
+            print(7)
             best_match_score = cosine_scores[i][best_match_idx].item()
-
+            print(8)
             if best_match_score >= threshold:
                 matched_key = ocr_key_list[best_match_idx]
                 matched_results[target_key] = ocr_keys[matched_key]
+                print(9)
             else:
                 matched_results[target_key] = None  # 유사도가 너무 낮으면 매칭 안 함
-
+                print(10)
+    print(22222)
     return matched_results
 
 def translate_keys(matched_results: dict) -> dict:
+    print('@@@@@@@@@@@@@ translated_keys 시작 @@@@@@@@@@@@@')
     """
     matched_results의 한글 키를 영어로 변환하고, 키별 값에 규칙을 적용.
 
@@ -75,7 +82,7 @@ def translate_keys(matched_results: dict) -> dict:
     def clean_b_no(value: str) -> str:
         """등록번호(b_no)는 숫자만 남김"""
         return re.sub(r"[^0-9]", "", value)
-
+    print('11111111111111111111111111111111')
     def format_date(value: str) -> str:
         """날짜 형식을 YYYYMMDD로 변환 (하이픈 제거)"""
         return re.sub(r"[^0-9]", "", value)  # 숫자만 남김
@@ -85,6 +92,7 @@ def translate_keys(matched_results: dict) -> dict:
         return value.strip()
 
     # 키별 변환 로직 적용
+    print('222222222222222222222222222222')
     translated_results = {}
     for k, v in matched_results.items():
         key = KEY_TRANSLATION.get(k, k)  # 한글 키를 영어 키로 변환
@@ -99,5 +107,5 @@ def translate_keys(matched_results: dict) -> dict:
             value = format_text(value)
 
         translated_results[key] = value
-
+    print('333333333333333333333333333333')
     return translated_results
