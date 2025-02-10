@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class KafkaConsumerService:
-    def __init__(self, bootstrap_servers: str, group_id: str, db: AsyncSession):
+    def __init__(self, bootstrap_servers, group_id, db):
         self.bootstrap_servers = bootstrap_servers
         self.group_id = group_id
         self.db = db
@@ -24,6 +24,14 @@ class KafkaConsumerService:
             bootstrap_servers=self.bootstrap_servers,
             value_serializer=lambda v: json.dumps(v).encode("utf-8"),
         )
+
+    async def start(self):
+        """Kafka Producer 시작"""
+        await self.producer.start()
+
+    async def stop(self):
+        """Kafka Producer 종료"""
+        await self.producer.stop()
 
     async def start_consumer(self, topic: str):
         """Kafka Consumer 시작 및 메시지 처리"""
@@ -92,16 +100,34 @@ class KafkaConsumerService:
             if valid_status == "01":
                 logger.info(f"✅ Gym 정보 찾기 시작! ")
                 # 유효한 경우: Gym 정보 매칭
-                matched_gym = await find_most_similar_gym(ocr_result, self.db)
+                # matched_gym = await find_most_similar_gym(ocr_result, self.db)
+                matched_gym = await find_most_similar_gym(ocr_result, self.db)  # ✅ AsyncSession을 직접 사용
+
+
+                if matched_gym:
+                    gym_id = matched_gym.id  # Gym ID 설정
                 logger.info(f"✅ 매칭된 Gym 정보: {matched_gym}")
+                message = "트레이너 등록에 성공했습니다"
 
             elif valid_status == "02":
                 # 폐업된 사업자 처리
                 logger.warning("⚠️ 폐업된 사업자입니다.")
-
+                message = "폐업한 사업자 입니다"
             else:
                 # 유효하지 않은 데이터 처리
                 logger.warning("⚠️ 유효하지 않은 사업자 등록 정보입니다.")
+                message = "유효하지 않은 사업자 등록 정보입니다"
+                        # ✅ Kafka 메시지 전송 (business_license_response)
+            if matched_gym == None:
+                gym_id = None
+            response_message = {
+                "user_id": user_id,
+                "gym_id": gym_id,  # 매칭된 Gym이 없으면 None
+                "message" : message
+            }
+
+            await self.send_kafka_message("business_license_response", response_message)
+            logger.info(f"📤 Kafka 메시지 전송 완료: {response_message}")
 
         except Exception as e:
             logger.error(f"❌ Kafka 메시지 처리 중 오류 발생: {e}")
@@ -119,3 +145,11 @@ class KafkaConsumerService:
                     return image_data
                 else:
                     raise Exception(f"Failed to download image: {response.status}")
+                
+    async def send_kafka_message(self, topic: str, message: dict):
+        """Kafka 메시지 전송"""
+        try:
+            await self.producer.send_and_wait(topic, message)
+            logger.info(f"📤 Kafka 메시지 전송 성공: {message}")
+        except Exception as e:
+            logger.error(f"❌ Kafka 메시지 전송 실패: {e}")

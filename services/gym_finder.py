@@ -4,6 +4,11 @@ from Levenshtein import ratio
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from models.gym import Gym
+import logging
+
+# 로깅 설정
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # ✅ Jaccard 유사도 계산 함수
 def jaccard_similarity(a: str, b: str) -> float:
@@ -30,16 +35,15 @@ def calculate_similarity(ocr_name: str, db_name: str, ocr_address: str, db_addre
     return name_similarity, address_similarity
 
 # ✅ 가장 유사한 Gym 데이터 하나만 반환하는 함수
-async def find_most_similar_gym(ocr_result: dict, db: AsyncSession):
+async def find_most_similar_gym(ocr_result: dict, db: AsyncSession):  # ✅ db는 AsyncSession 타입
     ocr_name = ocr_result["b_nm"]
     ocr_address = ocr_result["business_address"]
 
     # ✅ 트랜잭션 명확하게 관리
-    # async with db.begin():
     query = select(Gym).where(
         (Gym.gym_name.ilike(f"%{ocr_name}%")) | (Gym.full_address.ilike(f"%{ocr_address}%"))
     )
-    result = await db.execute(query)
+    result = await db.execute(query)  # ✅ db를 직접 사용
     
     gym_candidates = result.scalars().all()
 
