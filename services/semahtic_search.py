@@ -15,7 +15,7 @@ def extract_colon_key_values(text: str):
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model = SentenceTransformer('fine_tuned_ocr_corrector1', device=device)
+model = SentenceTransformer('swoolee97/opt-business-license-ocr', device=device)
 # 한국어 -> 영어 Key 매핑
 KEY_TRANSLATION = {
     "등록번호": "b_no",

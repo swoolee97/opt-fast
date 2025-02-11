@@ -40,25 +40,42 @@ async def find_most_similar_gym(ocr_result: dict, db: AsyncSession):  # ✅ db�
     ocr_address = ocr_result["business_address"]
 
     # ✅ 트랜잭션 명확하게 관리
-    query = select(Gym).where(
-        (Gym.gym_name.ilike(f"%{ocr_name}%")) | (Gym.full_address.ilike(f"%{ocr_address}%"))
-    )
-    result = await db.execute(query)  # ✅ db를 직접 사용
-    
-    gym_candidates = result.scalars().all()
+    # query = select(Gym).where(
+    #     (Gym.gym_name.ilike(f"%{ocr_name}%")) | (Gym.full_address.ilike(f"%{ocr_address}%"))
+    # )
+    query = select(Gym)
+    result = await db.execute(query)
 
+    # fetchall()을 먼저 저장
+    rows = result.fetchall()
+    logger.info(f"@@@@@@@@@@@@@@@@ 결과 @@@@@@@@@@@@@@@@")
+    logger.info(rows)
+    logger.info(f"@@@@@@@@@@@@@@@@ 결과 @@@@@@@@@@@@@@@@")
+
+    # scalars()가 아닌, 직접 리스트 변환
+    gym_candidates = [row[0] for row in rows]
+
+    logger.info(f"🏋️‍♂️ gym_candidates 개수: {len(gym_candidates)}")
+
+    best_score = 0
     best_match = None
-    best_score = 0.0
 
     for gym in gym_candidates:
+        logger.info(f"🔍 현재 비교 대상: {gym.gym_name} ({gym.road_address})")
+
         name_similarity, address_similarity = calculate_similarity(
-            ocr_name, gym.gym_name, ocr_address, gym.full_address
+            ocr_name, gym.gym_name, ocr_address, gym.road_address
         )
 
-        final_score = (name_similarity + address_similarity) / 2
+        logger.info(f"📊 유사도 결과 - 이름: {name_similarity:.2f}, 주소: {address_similarity:.2f}")
 
-        if final_score > best_score and final_score >= 0.8:
+        final_score = (name_similarity + address_similarity) / 2
+        logger.info(f"⚖️ 최종 점수: {final_score:.2f}")
+
+        if final_score > best_score and final_score >= 0.75:
+            logger.info(f"✅ 새로운 최적 매칭 발견! {gym.gym_name} (점수: {final_score:.2f})")
             best_score = final_score
             best_match = gym
 
-    return best_match  # ✅ 가장 유사한 Gym 하나 반환
+    logger.info(f"🎯 최종 선택된 매칭: {best_match.gym_name if best_match else '없음'}")
+    return best_match
